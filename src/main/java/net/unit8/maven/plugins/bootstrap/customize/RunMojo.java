@@ -1,9 +1,6 @@
 package net.unit8.maven.plugins.bootstrap.customize;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
@@ -12,10 +9,20 @@ import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.bio.SocketConnector;
+import org.eclipse.jetty.webapp.WebAppContext;
 
-import winstone.Launcher;
-
+/**
+ * The maven plugin for customize Twitter bootstrap.
+ *
+ * @author kawasima
+ * @goal run
+ */
 public class RunMojo extends AbstractMojo{
+	/** @parameter */
+	private int port = 8090;
 
 	/** @parameter default-value="${localRepository}" */
 	private ArtifactRepository localRepository;
@@ -27,7 +34,6 @@ public class RunMojo extends AbstractMojo{
 	private ArtifactResolver resolver;
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		Map<String, String> args = new HashMap<String, String>();
 		Artifact artifact = artifactFactory
 				.createArtifact("net.unit8.bootstrap", "bootstrap-customize-war", "0.1.0-SNAPSHOT", "runtime", "war");
 		try {
@@ -37,13 +43,20 @@ public class RunMojo extends AbstractMojo{
 		}
 		File warFile = artifact.getFile();
 
-		args.put("warfile", warFile.getAbsolutePath());
+		Server server = new Server();
+		SocketConnector socketConnector = new SocketConnector();
+		socketConnector.setPort(port);
+		Connector[] connectors = new Connector[]{ socketConnector };
+		server.setConnectors(connectors);
+		WebAppContext context = new WebAppContext();
+		context.setContextPath("/");
+		context.setWar(warFile.getAbsolutePath());
+		server.setHandler(context);
 		try {
-			Launcher.initLogger(args);
-			Launcher winstone = new Launcher(args);
-			winstone.run();
-		} catch (IOException e) {
-			throw new MojoExecutionException("IOException", e);
+			server.start();
+			server.join();
+		} catch (Exception e) {
+			throw new MojoExecutionException("Jetty Server Error", e);
 		}
 	}
 
