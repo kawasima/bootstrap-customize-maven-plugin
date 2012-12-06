@@ -35,6 +35,9 @@ public class RunMojo extends AbstractMojo{
 	/** @parameter */
 	private File cssOutputFile;
 
+	/** @parameter */
+	private File templatePath;
+
 	/** @parameter default-value="${localRepository}" */
 	private ArtifactRepository localRepository;
 
@@ -64,7 +67,11 @@ public class RunMojo extends AbstractMojo{
 		context.setWar(warFile.getAbsolutePath());
 		server.setHandler(context);
 		context.addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
-			@Override public void lifeCycleStarted(LifeCycle event) {
+			public void lifeCycleStarting(LifeCycle event) {
+				if (templatePath != null)
+					context.setInitParameter("templatePath", "file://" + templatePath.getAbsolutePath());
+			}
+			public void lifeCycleStarted(LifeCycle event) {
 				try {
 					Class<?> applicationConfigClass = context
 							.loadClass("net.unit8.bootstrap.customize.config.ApplicationConfig");
@@ -72,6 +79,7 @@ public class RunMojo extends AbstractMojo{
 					initializer.setIfNotNull("baseLessFile", baseLessFile);
 					initializer.setIfNotNull("lessDirectory", lessDirectory);
 					initializer.setIfNotNull("cssOutputFile", cssOutputFile);
+					initializer.setIfNotNull("templatePath",  templatePath);
 				} catch (Exception e) {
 					getLog().error(e);
 					if (server.isRunning()) {
