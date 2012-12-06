@@ -12,6 +12,8 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.bio.SocketConnector;
+import org.eclipse.jetty.util.component.AbstractLifeCycle;
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.webapp.WebAppContext;
 
 /**
@@ -23,6 +25,15 @@ import org.eclipse.jetty.webapp.WebAppContext;
 public class RunMojo extends AbstractMojo{
 	/** @parameter */
 	private int port = 8090;
+
+	/** @parameter */
+	private File lessDirectory;
+
+	/** @parameter */
+	private File baseLessFile;
+
+	/** @parameter */
+	private File cssOutputFile;
 
 	/** @parameter default-value="${localRepository}" */
 	private ArtifactRepository localRepository;
@@ -43,21 +54,43 @@ public class RunMojo extends AbstractMojo{
 		}
 		File warFile = artifact.getFile();
 
-		Server server = new Server();
+		final Server server = new Server();
 		SocketConnector socketConnector = new SocketConnector();
 		socketConnector.setPort(port);
 		Connector[] connectors = new Connector[]{ socketConnector };
 		server.setConnectors(connectors);
-		WebAppContext context = new WebAppContext();
+		final WebAppContext context = new WebAppContext();
 		context.setContextPath("/");
 		context.setWar(warFile.getAbsolutePath());
 		server.setHandler(context);
+		context.addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
+			@Override public void lifeCycleStarted(LifeCycle event) {
+				try {
+					Class<?> applicationConfigClass = context
+							.loadClass("net.unit8.bootstrap.customize.config.ApplicationConfig");
+					ApplicationConfigInitializer initializer = new ApplicationConfigInitializer(applicationConfigClass);
+					initializer.setIfNotNull("baseLessFile", baseLessFile);
+					initializer.setIfNotNull("lessDirectory", lessDirectory);
+					initializer.setIfNotNull("cssOutputFile", cssOutputFile);
+				} catch (Exception e) {
+					getLog().error(e);
+					if (server.isRunning()) {
+						try {
+							server.stop();
+						} catch (Exception ignore) {}
+
+					}
+				}
+			}
+		});
 		try {
+			server.setStopAtShutdown(true);
 			server.start();
 			server.join();
 		} catch (Exception e) {
 			throw new MojoExecutionException("Jetty Server Error", e);
 		}
 	}
+
 
 }
