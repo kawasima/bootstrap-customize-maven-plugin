@@ -1,7 +1,5 @@
 package net.unit8.maven.plugins.bootstrap.customize;
 
-import java.io.File;
-
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.repository.ArtifactRepository;
@@ -9,6 +7,8 @@ import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.*;
+import org.apache.maven.plugins.annotations.Component;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.bio.SocketConnector;
@@ -16,32 +16,44 @@ import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.eclipse.jetty.webapp.WebAppContext;
 
+import java.awt.*;
+import java.io.File;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.URI;
+
 /**
  * The maven plugin for customize Twitter bootstrap.
  *
  * @author kawasima
- * @goal run
  */
+@Mojo(name = "run")
 public class RunMojo extends AbstractMojo{
-	/** @parameter */
-	private int port = 8090;
+    @Parameter
+	private int port;
 
-	/** @parameter */
+    @Parameter(defaultValue = "8080")
+    private int startPort;
+
+    @Parameter(defaultValue = "9000")
+    private int endPort;
+
+	@Parameter
 	private File lessDirectory;
 
-	/** @parameter */
+	@Parameter
 	private File baseLessFile;
 
-	/** @parameter */
+	@Parameter
 	private File cssOutputFile;
 
-	/** @parameter default-value="${localRepository}" */
+	@Parameter(defaultValue = "${localRepository}")
 	private ArtifactRepository localRepository;
 
-	/** @component */
+	@Component
 	private ArtifactFactory artifactFactory;
 
-	/** @component */
+	@Component
 	private ArtifactResolver resolver;
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
@@ -54,6 +66,7 @@ public class RunMojo extends AbstractMojo{
 		}
 		File warFile = artifact.getFile();
 
+        scanPort();
 		final Server server = new Server();
 		SocketConnector socketConnector = new SocketConnector();
 		socketConnector.setPort(port);
@@ -86,11 +99,24 @@ public class RunMojo extends AbstractMojo{
 		try {
 			server.setStopAtShutdown(true);
 			server.start();
+            Desktop.getDesktop().browse(URI.create("http://localhost:" + port + "/"));
 			server.join();
 		} catch (Exception e) {
 			throw new MojoExecutionException("Jetty Server Error", e);
 		}
 	}
+    protected void scanPort() {
+        for (int p = startPort; p <= endPort; p++) {
+            try {
+                Socket sock = new Socket("localhost", p);
+                sock.close();
+            } catch (IOException e) {
+                port = p;
+                return;
+            }
+        }
+        throw new RuntimeException("Can't find available port from " + startPort + " to " + endPort);
+    }
 
 
 }
