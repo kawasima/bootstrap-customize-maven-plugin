@@ -1,7 +1,5 @@
 package net.unit8.maven.plugins.bootstrap.customize;
 
-import java.io.File;
-
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.factory.ArtifactFactory;
 import org.apache.maven.artifact.repository.ArtifactRepository;
@@ -9,8 +7,9 @@ import org.apache.maven.artifact.resolver.ArtifactResolver;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugins.annotations.*;
 import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.bio.SocketConnector;
@@ -49,11 +48,10 @@ public class RunMojo extends AbstractMojo{
 	@Parameter
 	private File cssOutputFile;
 
-	@Parameter(defaultValue = "${localRepository}")
-	/** @parameter */
+    @Parameter
 	private File templatePath;
 
-	/** @parameter default-value="${localRepository}" */
+    @Parameter(defaultValue = "${localRepository}")
 	private ArtifactRepository localRepository;
 
 	@Component
@@ -74,6 +72,8 @@ public class RunMojo extends AbstractMojo{
 
 		final Server server = new Server();
 		SocketConnector socketConnector = new SocketConnector();
+        if (port == 0)
+            scanPort();
 		socketConnector.setPort(port);
 		Connector[] connectors = new Connector[]{ socketConnector };
 		server.setConnectors(connectors);

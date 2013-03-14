@@ -1,14 +1,14 @@
 package net.unit8.maven.plugins.bootstrap.customize;
 
+import org.apache.maven.plugin.MojoExecutionException;
+
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.maven.plugin.MojoExecutionException;
-
 public class ApplicationConfigInitializer {
 	private Object applicationConfig;
-	private Map<String, Method> setterMethods = new HashMap<String, Method>();
+	private final Map<String, Method> setterMethods = new HashMap<String, Method>();
 
 	public ApplicationConfigInitializer(Class<?> applicationConfigClass) throws MojoExecutionException {
 		Method instanceMethod = null;
